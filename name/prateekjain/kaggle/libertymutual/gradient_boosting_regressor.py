@@ -23,14 +23,14 @@ from sklearn.preprocessing import MultiLabelBinarizer, OneHotEncoder
 
 __author__ = 'prateek.jain'
 
-logging.basicConfig(filename='liberty_mutual_regression.log', filemode='w', level=logging.DEBUG,
+logging.basicConfig(filename='gbr_liberty_mutual_regression.log', filemode='w', level=logging.DEBUG,
                     format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 google_file_location = ''
 
 csv.field_size_limit(sys.maxsize)
 
 
-output_file = open('liberty_mutual.csv','w')
+output_file = open('gbr_liberty_mutual.csv','w')
 output_file_ml = open('liberty_mutual_ml.csv','w')
 
 '''

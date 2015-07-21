@@ -8,11 +8,10 @@ import numpy
 
 from pandas import read_csv, pandas, DataFrame
 from sklearn import cross_validation, linear_model
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.multiclass import OneVsRestClassifier
-from sklearn.neighbors import KNeighborsRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
 import csv
@@ -24,14 +23,14 @@ from sklearn.preprocessing import MultiLabelBinarizer, OneHotEncoder
 
 __author__ = 'prateek.jain'
 
-logging.basicConfig(filename='knn_liberty_mutual_regression.log', filemode='w', level=logging.DEBUG,
+logging.basicConfig(filename='svm_liberty_mutual_regression.log', filemode='w', level=logging.DEBUG,
                     format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 google_file_location = ''
 
 csv.field_size_limit(sys.maxsize)
 
 
-output_file = open('knn_liberty_mutual.csv','w')
+output_file = open('svm_liberty_mutual.csv','w')
 output_file_ml = open('liberty_mutual_ml.csv','w')
 
 '''
@@ -78,18 +77,11 @@ def one_hot_column(df, cols, vocabs):
     return res
 
 
-
-def f(x):
-   math.log(x,2)
-
-
-
 '''
 Picking the verticals and content column from the data frame. If additional features have to be added, add a column name here
 '''
 df = panda_data_frame[['T1_V1','T1_V2','T1_V3','T1_V4','T1_V5','T1_V6','T1_V7','T1_V8','T1_V9','T1_V10','T1_V11','T1_V12','T1_V13','T1_V14','T1_V15','T1_V16','T1_V17','T2_V1','T2_V2','T2_V3','T2_V4','T2_V5','T2_V6','T2_V7','T2_V8','T2_V9','T2_V10','T2_V11','T2_V12','T2_V13','T2_V14','T2_V15']]
 values = panda_data_frame[['Hazard']]
-df_id = panda_data_frame[['Id']]
 
 test_df = testing_data_frame[['T1_V1','T1_V2','T1_V3','T1_V4','T1_V5','T1_V6','T1_V7','T1_V8','T1_V9','T1_V10','T1_V11','T1_V12','T1_V13','T1_V14','T1_V15','T1_V16','T1_V17','T2_V1','T2_V2','T2_V3','T2_V4','T2_V5','T2_V6','T2_V7','T2_V8','T2_V9','T2_V10','T2_V11','T2_V12','T2_V13','T2_V14','T2_V15']]
 test_df_id = testing_data_frame['Id']
@@ -265,7 +257,6 @@ test_df['T1_V7'] = test_df['T1_V7'].map(t1_v7_mapping)
 feats =df.transpose().to_dict().values()
 test_feats = test_df.transpose().to_dict().values()
 
-#
 
 from sklearn.feature_extraction import DictVectorizer
 Dvec = DictVectorizer()
@@ -287,30 +278,22 @@ test_df = Dvec.fit_transform(test_feats).toarray()
 #print len(res)
 #print len(values)
 
-clf = KNeighborsRegressor(n_neighbors=5,weights='distance')
-clf.fit(df,values)
+clf = GradientBoostingRegressor(n_estimators=100, learning_rate=0.1,max_depth=15, random_state=0, loss='ls',warm_start=True)
+clf.fit(df, values)
 
 
 Y_train = clf.predict(df)
 
 Y = clf.predict(test_df)
-
-Y = [element for element in list for list in Y]
-
 print clf.score(df,values)
-#output_file.write('Id,Hazard\n')
-
-output_file.write('Actual,Predicted\n')
+output_file.write('Id,Hazard\n')
 
 diff_count = 0
 
 
 for id,predicted in zip(list(test_df_id.values.flatten()),Y):
     output_file.write(str(id)+','+str(predicted)+'\n')
-
-
-#for id,predicted in zip(list(test_df_id.values.flatten()),Y_train):
-#    output_file.write(str(id)+','+str(predicted)+'\n')
+    #print str(id) +'=>'+ str(int(predicted))+'=>'+str(value)
 
 
 

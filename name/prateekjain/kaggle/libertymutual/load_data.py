@@ -7,11 +7,12 @@ import math
 import numpy
 
 from pandas import read_csv, pandas, DataFrame
-from sklearn import cross_validation, linear_model
-from sklearn.ensemble import RandomForestRegressor
+from sklearn import cross_validation, linear_model, grid_search
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.multiclass import OneVsRestClassifier
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
 import csv
@@ -32,6 +33,8 @@ csv.field_size_limit(sys.maxsize)
 
 output_file = open('liberty_mutual.csv','w')
 output_file_ml = open('liberty_mutual_ml.csv','w')
+
+output_file_ensemble = open('ensemble_liberty_mutual.csv','w')
 
 '''
 Creating a panda data frame by reading the CSV file
@@ -81,6 +84,7 @@ def one_hot_column(df, cols, vocabs):
 Picking the verticals and content column from the data frame. If additional features have to be added, add a column name here
 '''
 df = panda_data_frame[['T1_V1','T1_V2','T1_V3','T1_V4','T1_V5','T1_V6','T1_V7','T1_V8','T1_V9','T1_V10','T1_V11','T1_V12','T1_V13','T1_V14','T1_V15','T1_V16','T1_V17','T2_V1','T2_V2','T2_V3','T2_V4','T2_V5','T2_V6','T2_V7','T2_V8','T2_V9','T2_V10','T2_V11','T2_V12','T2_V13','T2_V14','T2_V15']]
+df_id = panda_data_frame[['Id']]
 values = panda_data_frame[['Hazard']]
 
 
@@ -279,7 +283,12 @@ test_df = Dvec.fit_transform(test_feats).toarray()
 #print len(res)
 #print len(values)
 
-clf = RandomForestRegressor(n_estimators=120,verbose=1,warm_start=True,oob_score=True)
+parameters = {'oob_score':(True,False)}
+
+rfr = RandomForestRegressor(n_estimators=200,verbose=1,warm_start=True,oob_score=True)
+
+clf = grid_search.GridSearchCV(rfr, parameters)
+
 clf.fit(df,values)
 
 
@@ -289,26 +298,80 @@ Y = clf.predict(test_df)
 print clf.score(df,values)
 #output_file.write('Id,Hazard\n')
 
+
+for id,predicted in zip(list(test_df_id.values.flatten()),Y):
+    output_file_ensemble.write(str(id)+','+str(predicted)+'\n')
+
+
+
 output_file.write('Actual,Predicted\n')
 
 diff_count = 0
 
 
-for id,predicted in zip(list(values.flatten()),Y_train):
-    output_file.write(str(id)+','+str(predicted)+'\n')
+#for id,predicted in zip(list(values.flatten()),Y_train):
+#    output_file.write(str(id)+','+str(predicted)+'\n')
 
+#for id,predicted,actual in zip(list(df_id.values.flatten()),Y,list(values.values.flatten())):
+#    output_file.write(str(id)+','+str(predicted)+','+str(actual)+','+str(predicted-actual)+','+str(int(predicted)-actual)+'\n')
 
 
 #for id,predicted in zip(list(test_df_id.values.flatten()),Y_train):
 #    output_file.write(str(id)+','+str(predicted)+'\n')
 
 
+parameters = {'n_neighbors':(10,),'weights':('uniform','distance'),'algorithm':('auto',)}
+clf_knn = KNeighborsRegressor()
 
-values = values.values.flatten()
-values = numpy.delete(values,0)
-print 'Gini value',str(normalized_gini(values,Y_train))
+clf = grid_search.GridSearchCV(clf_knn, parameters)
+clf.fit(df,values)
+Y_knn_train = clf.predict(df)
 
-output_file.flush()
-output_file.close()
+Y_knn = clf.predict(test_df)
+#Y_knn = [element for element in list for list in Y_knn]
+
+print clf.score(df,values)
+
+
+
+parameters = {'n_estimators':(1000,),'loss' : ('lad',),'alpha':(0.9,0.95),'warm_start':(True,False)}
+clf_gbr = GradientBoostingRegressor(learning_rate=1.0,max_depth=20, random_state=1,subsample=0.5)
+clf = grid_search.GridSearchCV(clf_gbr, parameters)
+clf.fit(df, values)
+print clf.score(df,values)
+#
+#
+#Y_train_gbr = clf_gbr.predict(df)
+#
+Y_gbr = clf.predict(test_df)
+
+predictions = [min(x)/3 for x in zip(Y_knn,Y,Y_gbr)]
+
+for id,predicted in zip(list(test_df_id.values.flatten()),predictions):
+    output_file_ensemble.write(str(id)+','+str(predicted)+'\n')
+
+#
+#
+#
+# Y_knn_train = [value for element in Y_knn_train for value in element]
+#
+# ensemble_train_df = DataFrame(Y_train,Y_knn_train,Y_train_gbr)
+# ensemble_test_df = DataFrame(Y,Y_knn,Y_gbr)
+#
+# clf = RandomForestRegressor(n_estimators=120,verbose=1,warm_start=True,oob_score=True)
+# clf.fit(ensemble_train_df,values)
+# Y_ensemble = clf.predict(ensemble_test_df)
+#
+# for id,predicted in zip(list(test_df_id.values.flatten()),Y_ensemble):
+#     output_file_ensemble.write(str(id)+','+str(predicted)+'\n')
+#
+#
+#
+# values = values.values.flatten()
+# values = numpy.delete(values,0)
+# print 'Gini value',str(normalized_gini(values,Y_train))
+#
+# output_file.flush()
+# output_file.close()
 
 
