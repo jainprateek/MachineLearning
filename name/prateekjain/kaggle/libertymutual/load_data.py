@@ -114,15 +114,17 @@ test_df.to_csv('test_df.csv')
 def predict_using_rfr_pca():
     rfr_output_file = open('rfr_pca_liberty_mutual.csv','w')
     rfr_output_file.write('Id,Hazard\n')
-    parameters = {'oob_score':(True,False)}
+    parameters = {'oob_score':(True,False,)}
     rfr = RandomForestRegressor(n_estimators=200,verbose=1,warm_start=True)
-    pca = decomposition.PCA()
+    pca = decomposition.PCA(copy=True, whiten=False)
     pipe = Pipeline(steps=[('pca', pca), ('random_forest_regressor', rfr)])
 
-    Cs = np.logspace(-4, 4, 3)
-    estimator = grid_search.GridSearchCV(pipe,dict(pca__n_components='mle',logistic__C=Cs))
-    estimator.fit(df, values)
-    Y = estimator.fit(df,values)
+    #Cs = np.logspace(-4, 4, 3)
+    parameters_pca = {}
+
+    estimator = grid_search.GridSearchCV(pipe,parameters_pca)
+    #estimator.fit(df, values)
+    estimator.fit(df,values)
     Y = estimator.predict(test_df)
     for id,predicted in zip(list(test_df_id.values.flatten()),Y):
         rfr_output_file.write(str(id)+','+str(predicted)+'\n')
@@ -178,10 +180,10 @@ def predict_using_gbr():
 
 
 
-
-predict_using_rfr()
-predict_using_knn()
-predict_using_gbr()
+predict_using_rfr_pca()
+# predict_using_rfr()
+# predict_using_knn()
+# predict_using_gbr()
 
 
 
